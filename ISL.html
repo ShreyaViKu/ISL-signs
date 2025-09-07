@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder for Firefox</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Record Audio in Firefox</h1>
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+    <p id="output">Recorded audio will be displayed here...</p>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const output = document.getElementById('output');
+
+        // Check for media device compatibility
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            // Request permission for microphone access
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+
+                // When recording starts
+                mediaRecorder.onstart = function () {
+                    audioChunks = [];
+                    output.textContent = "Recording...";
+                    stopBtn.disabled = false;
+                    startBtn.disabled = true;
+                };
+
+                // When recording stops
+                mediaRecorder.onstop = function () {
+                    output.textContent = "Recording stopped. Processing audio...";
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.controls = true;
+
+                    // Append audio player
+                    output.textContent = "";
+                    output.appendChild(audio);
+
+                    // Optionally: send audioBlob to your server or a third-party service
+                    // You can upload this blob to a cloud service like Google Cloud Speech-to-Text for transcription
+                };
+
+                // Store recorded audio data
+                mediaRecorder.ondataavailable = function (event) {
+                    audioChunks.push(event.data);
+                };
+
+                startBtn.onclick = () => {
+                    mediaRecorder.start();
+                };
+
+                stopBtn.onclick = () => {
+                    mediaRecorder.stop();
+                    stopBtn.disabled = true;
+                    startBtn.disabled = false;
+                };
+            }).catch(err => {
+                output.textContent = "Error accessing microphone: " + err.message;
+            });
+        } else {
+            alert("Your browser does not support audio recording.");
+        }
+    </script>
+</body>
+</html>
